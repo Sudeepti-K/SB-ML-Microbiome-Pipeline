@@ -25,3 +25,5 @@ Bar plots: ggplot2, tidyr, ggpubr libraries.
 Alpha-Diversity: vegan, ggplot2, ggpubr libraries.
 Beta-Diversity and PCoA plot: Custom function based on vegan, ape, and ggplot2 libraries.
 T.Test and Effect-Size Calculations: dplyr, rstatix, ggplot2, and ggpubr libraries.
+
+The code for generic use can be found in this repository, which can be edited according to the users' needs.
