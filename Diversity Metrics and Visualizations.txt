@@ -1,0 +1,119 @@
+#Plot bar chart for abundance results in R (Can be done for both Taxonomic classification and Functional Profiling results)
+#Abundances have been normalized using the log10(1+x) normalization
+
+
+library(ggplot2)
+library(tidyr)
+library(ggpubr)
+data<- read.csv(file.choose(),header=TRUE) #Contains three columns (Race,Taxa,Abundance)
+
+Race<-ggplot(R, aes(x=Race, y=Abundance, fill=Pathway)) +geom_bar(aes(x=Race, y=Abundance, fill=Pathway), stat="identity", alpha=0.8)+theme(legend.position = "bottom")
+ggarrange(Race,Ethnicity,Location, ncol = 3, nrow =1, common.legend = TRUE,legend = "bottom")
+
+#Plot circular bar chart for abundance results in R (Can be done for both Taxonomic classification and Functional Profiling results)
+R1<-ggplot(R, aes(x=Race, y=Abundance, fill=Pathway)) +geom_bar(aes(x=Race, y=Abundance, fill=Pathway), stat="identity", alpha=1, color = "white")+theme_minimal()+theme(legend.position = "bottom")+coord_polar()
+E2<-ggplot(E, aes(x=Ethnicity, y=Abundance, fill=Pathways)) +geom_bar(aes(x=Ethnicity, y=Abundance, fill=Pathways), stat="identity", alpha=1, color = "white")+theme_minimal()+theme(legend.position = "bottom")+coord_polar()+ theme(axis.text.x = element_text(size = 10))
+L2<-ggplot(L, aes(x=Location, y=Abundance, fill=Pathway)) +geom_bar(aes(x=Location, y=Abundance, fill=Pathway), stat="identity", alpha=1, color = "white")+theme_minimal()+theme(legend.position = "bottom")+coord_polar()+ theme(axis.text.x = element_text(size = 10))
+ggarrange(R1,E1,L1, ncol = 3, nrow =1, common.legend = TRUE,legend = "bottom")
+
+#Transform absolute abundance count data using log10 transformation
+
+count<-read.csv("taxa_genus_count.csv",header=TRUE)
+transcount<-log10(1 + count) #(1+x) is added to avoid infinity values during log10 transformation
+
+#Alpha-Diversity
+
+library(vegan)
+library(ggplot2)
+library(ggpubr)
+
+# Load data with first column sample_id,second group, and then read counts (.count))
+
+data <- read.csv(file.choose(),header=TRUE) # import your file
+
+# Calculate diversity using vegan
+
+diversity <- diversity(data[,4:ncol(data)]) # assuming the first four columns are metadata. Can be adjusted according to number of metadata columns
+
+# Create a boxplot using ggplot2
+
+AD<-ggboxplot(data, x = "group", y = "diversity", ylab = "Alpha-diversity", color = "black", size=1, alpha=0.6, fill = "group", draw_quantiles = NULL,outlier.shape = NA,add="jitter")
+AD<-AD+theme(panel.background = element_rect(colour='black', fill = 'grey92'),plot.background = element_rect(fill = 'white'),axis.text.x = element_text(colour='black'),axis.text.y = element_text(colour='black'),legend.position="none")+grids(linetype="solid",color = "white")+ggtitle("Alpha-Diversity amongst PTB samples across different groups")
+
+#PCoA analysis
+#Create a custom function to carry out PCoA analysis
+#Input file is a dataframe with metadata in the first column. The rest of the columns have normalized abundance counts
+#First column to be names as "group"
+
+pcoafunc<-function(data, pc = 12,
+         level = 0.68,
+         p.value = TRUE){
+  dis <- vegan::vegdist(data[, -1], method = "manhattan")
+  pcoa <- ape::pcoa(dis, correction = "none", rn = NULL)
+  eig <- round(100*pcoa$values[1:3, 2], 2)
+  site <- pcoa$vectors[,1:3]
+  p.v <- vegan::adonis2(data[, -1]~data$group,
+                        data = data,method="manhattan")$aov.tab$`Pr(>F)`[1]
+  if(all(rownames(site) == rownames(data))){
+    pca.data <- data.frame(group = data$group, site)
+    colnames(pca.data)[2:4] <- paste0("PCoA", 1:3)
+  }
+  label <- data.frame(min = apply(pca.data[, 2:4], 2, min),
+                      max = apply(pca.data[, 2:4], 2, max))
+  label$mean <- (label$min + label$max)/2
+  if (pc == 12) {
+    x <- "PCoA1"
+    y <- "PCoA2"
+    x.posi <- label[1, 3]
+    y.posi <- label[2, 2]
+    x.lab <- paste0(x, ": ", eig[1], "%")
+    y.lab <- paste0(y, ": ", eig[2], "%")
+  }else if (pc == 13) {
+    x <- "PCoA1"
+    y <- "PCoA3"
+    x.posi <- label[1, 3]
+    y.posi <- label[3, 2]
+    x.lab <- paste0(x, ": ", eig[1], "%")
+    y.lab <- paste0(y, ": ", eig[3], "%")
+  }else if (pc == 23) {
+    x <- "PCoA2"
+    y <- "PCoA3"
+    x.posi <- label[2, 3]
+    y.posi <- label[3, 2]
+    x.lab <- paste0(x, ": ", eig[2], "%")
+    y.lab <- paste0(y, ": ", eig[3], "%")
+  }
+  p <- ggplot(data = pca.data,
+              aes_string(x = x, y = y, color = "group")) +
+    geom_point(aes(color = group),
+               size = 1.5, alpha = 1) +
+    stat_ellipse(level = level,  linetype = 3,
+                 geom = "polygon", alpha = 0.2,
+                 aes(fill = group), show.legend = FALSE) +
+    xlab(x.lab) + ylab(y.lab)
+  if (p.value) {
+    p <- p +
+      annotate(geom = "text", x = x.posi, y = y.posi*1.25,
+               label = paste0("adonis: p.value =  ", p.v),
+               size = 4.5, fontface = "bold.italic",
+               colour = ifelse(p.v < 0.05, "black", "red1"))
+  }
+  p <- p + theme(panel.grid = element_line(color = 'gray90', size = 0.1),
+                 panel.background = element_rect(color = 'gray60',
+                                                 fill = 'transparent', size = 1),
+                 axis.text = element_text(size = 12, face = "bold", color = "black"),
+                 axis.text.x = element_text(colour = "black", size = 12, face = "bold"),
+                 axis.title = element_text(size = 12, face = "bold"),
+                 legend.text = element_text(size = 10, face = "bold"),
+                 legend.title = element_blank(),
+                 legend.position = "right",
+                 panel.border = element_rect(colour = "black", fill = "transparent"),
+                 legend.background = element_rect(fill = "transparent"),
+                 legend.key = element_rect(fill = "transparent"))
+  return(p)
+}
+
+
+#Usage
+
+pcoafunc(data,pc=12,level = 0.68,p.value=TRUE) #Create multiple pcoa graphs on the basis of metadata and combine plots using ggarrange

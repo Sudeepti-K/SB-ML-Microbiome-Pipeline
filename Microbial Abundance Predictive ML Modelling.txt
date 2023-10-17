@@ -1,0 +1,243 @@
+#Importing libraries
+
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler,StandardScaler,RobustScaler,LabelEncoder
+
+#Importing the dataframe
+
+df=pd.read_csv('Microbial Normalized Counts.csv')
+print(df.columns)
+
+#null values
+
+print(df.isnull().sum())
+
+#removing null values
+
+df=df.dropna(axis=1)
+print(df.isnull().sum())
+
+#Encoding the labels
+
+df=df.drop(['SampleID','BioProject ID'],axis=1)
+le=LabelEncoder()
+label_col=['Race','Geographical Location','Delivery Mode']
+for i in label_col:
+    df[i]=le.fit_transform(df[i])
+print(df)
+x=df.drop(['Delivery Mode'],axis=1)
+y=df['Delivery Mode']
+
+#Normalising the Datasets
+#Declaring Standardization Method - Logarithmic 
+
+import numpy as np
+
+#Fitting the x values
+
+upd_x=x
+print()
+print(x)
+print()
+print(upd_x)
+
+#Logarithmic Function
+
+for i in x.columns:
+    print(x[i])
+    upd_x[i]=np.log10(1+x[i])
+    print("Log values",upd_x[i])
+
+#Printing standardised method
+
+print()
+print("Normalised Data:\n\n")
+print(upd_x)
+print()
+print(x)
+
+#Detemine imbalances in the data
+
+from collections import Counter
+print(Counter(y))
+
+#Handling imabalnces in data
+#Tomek_under_sampling
+
+from imblearn.under_sampling import TomekLinks
+tomli=TomekLinks(sampling_strategy='majority')
+x_tomli,y_tomli=tomli.fit_resample(upd_x,y)
+print('Original Dataset shape:{}',Counter(y))
+print("Tomek Links Under Sampling:{}",Counter(y_tomli))
+
+#Splitting original data into train and test data
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(upd_x,y,random_state=42,test_size=0.3)
+print("Original Feature Data shape:",x_train.shape,x_test.shape)
+print("Original Target Data Shape: ",y_train.shape,y_test.shape)
+print()
+
+#splitting Tomek Under Sampling data into train and test data
+
+x_tomli_train,x_tomli_test,y_tomli_train,y_tomli_test=train_test_split(x_tomli,y_tomli,test_size=0.3,random_state=42)
+print("Tomek Feature Data shape:",x_tomli_train.shape,x_tomli_test.shape)
+print("Tomek Target Data Shape: ",y_tomli_train.shape,y_tomli_test.shape)
+print()
+
+#Random Forest Classifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+rf_model_tomli = RandomForestClassifier()
+rf_model_tomli.fit(x_tomli_train, y_tomli_train) #training the rf model with training data
+X_train_prediction = rf_model_tomli.predict(x_tomli_train) #accuracy score on training data
+training_data_accuracy = accuracy_score(y_tomli_train, X_train_prediction)
+print('Accuracy score of training data : ', training_data_accuracy)
+X_test_prediction = rf_model_tomli.predict(x_tomli_test) #accuracy score on test data
+test_data_accuracy = accuracy_score(y_tomli_test, X_test_prediction)
+print('Accuracy score of test data : ', test_data_accuracy)
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score #For calculating model's evaluation measures
+print("Precision Score:",precision_score(y_tomli_test,X_test_prediction))
+print("Recall Score:",recall_score(y_tomli_test,X_test_prediction))
+print("F1 Score:",f1_score(y_tomli_test,X_test_prediction))
+print("AUC Score:",roc_auc_score(y_tomli_test,X_test_prediction))
+test_data_pred_prob_rf_tomli=rf_model_tomli.predict_proba(x_tomli_test)
+print('Shape of the predicted dataset:',test_data_pred_prob_rf_tomli.shape)
+importances = rf_model_tomli.feature_importances_ #Calculate top important features
+sorted_idx = importances.argsort()[::-1] 
+feature_names =col
+plt.figure(figsize=(35, 15))  #create a figure and set the figure size
+colors = plt.cm.rainbow(np.linspace(0, 1, len(sorted_idx)))  # Use viridis colormap for the gradient
+plt.bar(range(x_tomli_train.shape[1]), importances[sorted_idx], color=colors) #create the bar chart with gradient colors
+plt.xticks(range(x_tomli_train.shape[1]), [feature_names[i] for i in sorted_idx], rotation=90) #set x-axis tick labels and rotation
+features=[feature_names[i]for i in sorted_idx]
+print(features[:21])
+plt.xlabel('Features') #set x-axis and y-axis labels, and title
+plt.ylabel('Importance')
+plt.title('Feature Importance Plot')
+plt.show() #show the plot
+
+#Gaussian Bayesian classifier
+from sklearn.naive_bayes import GaussianNB
+gnb=GaussianNB()
+gnb.fit(x_tomli_train,y_tomli_train)
+x_train_predict=gnb.predict(x_tomli_train)
+print("Accuracy score of training data:",accuracy_score(y_tomli_train,x_train_predict))
+x_test_predict=gnb.predict(x_tomli_test)
+print("Accuracy score of test data:",accuracy_score(y_tomli_test,x_test_predict))
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score
+print("Precision Score:",precision_score(y_tomli_test,x_test_predict))
+print("Recall Score:",recall_score(y_tomli_test,x_test_predict))
+print("F1 Score:",f1_score(y_tomli_test,x_test_predict))
+print("AUC Score:",roc_auc_score(y_tomli_test,x_test_predict))
+#probablity score and dataset shape
+test_pred_proba_gnb_tomli=gnb.predict_proba(x_tomli_test)
+print("Shape of predicted dataset:",test_pred_proba_gnb_tomli.shape)
+
+
+#Decision Tree classifier
+from sklearn.tree import DecisionTreeClassifier
+print('done')
+DC_tomli = DecisionTreeClassifier()
+DC_tomli.fit(x_tomli_train,y_tomli_train)
+print("Accuracy of Train Dataset:",accuracy_score(y_tomli_train,DC_tomli.predict(x_tomli_train)))
+x_test_predict = DC_tomli.predict(x_tomli_test)
+print("Accuracye of Test Dataset:",accuracy_score(y_tomli_test,x_test_predict))
+#mtrics analysis
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score
+print("Precision Score:",precision_score(y_tomli_test,x_test_predict))
+print("Recall Score:",recall_score(y_tomli_test,x_test_predict))
+print("F1 Score:",f1_score(y_tomli_test,x_test_predict))
+print("AUC Score:",roc_auc_score(y_tomli_test,x_test_predict))
+#probablity score and dataset shape
+test_pred_proba_DC_tomli=DC_tomli.predict_proba(x_tomli_test)
+print("Shape of predicted dataset:",test_pred_proba_DC_tomli.shape)
+
+
+#Support Vector Machine classifier
+from sklearn.svm import SVC
+print('done')
+SVC_tomli=SVC(probability=True)
+SVC_tomli.fit(x_tomli_train,y_tomli_train)
+print("Accuracy of Train Dataset:",accuracy_score(y_tomli_train,SVC_tomli.predict(x_tomli_train)))
+x_test_predict = SVC_tomli.predict(x_tomli_test)
+print("Accuracy of Test Dataset:",accuracy_score(y_tomli_test,x_test_predict))
+#metrics scores
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score
+print("Precision Score:",precision_score(y_tomli_test,x_test_predict))
+print("Recall Score:",recall_score(y_tomli_test,x_test_predict))
+print("F1 Score:",f1_score(y_tomli_test,x_test_predict))
+print("AUC Score:",roc_auc_score(y_tomli_test,x_test_predict))
+#probablity score and dataset shape
+test_pred_proba_SVC_tomli=SVC_tomli.predict_proba(x_tomli_test)
+print("Shape of predicted dataset:",test_pred_proba_SVC_tomli.shape)
+
+#Naïve Bayes classifier
+from sklearn.naive_bayes import CategoricalNB
+print('done')
+CNB_tomli=CategoricalNB(min_categories=upd_x.nunique())
+CNB_tomli.fit(x_tomli_train,y_tomli_train)
+print("Accuracy of the Train Dataset:",accuracy_score(y_tomli_train,CNB_tomli.predict(x_tomli_train)))
+x_test_predict = CNB_tomli.predict(x_tomli_test)
+print("Accuracy of the Test Dataset:",accuracy_score(y_tomli_test,x_test_predict))
+#metrics analysis:
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score
+print("Precision Score:",precision_score(y_tomli_test,x_test_predict))
+print("Recall Score:",recall_score(y_tomli_test,x_test_predict))
+print("F1 Score:",f1_score(y_tomli_test,x_test_predict))
+print("AUC Score:",roc_auc_score(y_tomli_test,x_test_predict))
+#probablity score and dataset shape
+test_pred_proba_CNB_tomli=CNB_tomli.predict_proba(x_tomli_test)
+print("Shape of predicted dataset:",test_pred_proba_CNB_tomli.shape)
+
+
+#XGBoost classifier
+from xgboost import XGBClassifier
+print('done')
+XGB_tomli=XGBClassifier()
+XGB_tomli.fit(x_tomli_train,y_tomli_train)
+print("Accuracy of the Train Dataset is:",accuracy_score(y_tomli_train,XGB_tomli.predict(x_tomli_train)))
+x_test_predict=XGB_tomli.predict(x_tomli_test)
+print("Accuracy of the Test Dataset is:",accuracy_score(y_tomli_test,x_test_predict))
+#metrics analysis
+from sklearn.metrics import precision_score, recall_score,f1_score,roc_auc_score
+print("Precision Score:",precision_score(y_tomli_test,x_test_predict))
+print("Recall Score:",recall_score(y_tomli_test,x_test_predict))
+print("F1 Score:",f1_score(y_tomli_test,x_test_predict))
+print("AUC Score:",roc_auc_score(y_tomli_test,x_test_predict))
+#probablity score and dataset shape
+test_pred_proba_XGB_tomli=XGB_tomli.predict_proba(x_tomli_test)
+print("Shape of predicted dataset:",test_pred_proba_XGB_tomli.shape)
+
+#Plotting the roc curve
+from sklearn.metrics import roc_curve,auc
+print('done')
+fpr1,tpr1,thresh1=roc_curve(y_tomli_test,test_data_pred_prob_rf_tomli[:,1]) #Random Forest
+roc_auc1=auc(fpr1,tpr1)
+plt.plot(fpr1,tpr1,linestyle='--',label='Model 1 - Random Forest (AUC=%0.2f)'% roc_auc1)
+fpr2,tpr2,thresh2=roc_curve(y_tomli_test,test_pred_proba_gnb_tomli[:,1]) #Gaussian Bayes
+roc_auc2=auc(fpr2,tpr2)
+plt.plot(fpr2,tpr2,linestyle='--',label='Model 2 - Gaussian Bayes (AUC=%0.2f)'%roc_auc2)
+fpr3,tpr3,thresh3=roc_curve(y_tomli_test,test_pred_proba_DC_tomli[:,1]) #Decision Tree
+roc_auc3=auc(fpr3,tpr3)
+plt.plot(fpr3,tpr3,'--',label='Model 3 - Decision Tree (AUC=%0.2f)'%roc_auc3)
+fpr4,tpr4,thresh4= roc_curve(y_tomli_test,test_pred_proba_CNB_tomli[:,1]) #Naive Bayes
+roc_auc4=auc(fpr4,tpr4)
+plt.plot(fpr4,tpr4,'--',label='Model 4 - Naive Bayes (AUC=%0.2f)'%roc_auc4)
+fpr5,tpr5,thresh5 = roc_curve(y_tomli_test,test_pred_proba_SVC_tomli[:,1]) #SVM
+roc_auc5=auc(fpr5,tpr5)
+plt.plot(fpr5,tpr5,'--',label='Model 5 - Support Vector (AUC=%0.2f)'%roc_auc5)
+fpr6,tpr6,thresh6 = roc_curve(y_tomli_test,test_pred_proba_XGB_tomli[:,1]) #XGBoost
+roc_auc6=auc(fpr6,tpr6)
+plt.plot(fpr6,tpr6,'--',label='Model 6 - Xtereme Gradient Boost (AUC=%0.2f)'%roc_auc6)
+#Bifurcation Line
+plt.plot([0,1],[0,1],linestyle='--',label="Random")
+#Labels
+plt.xlabel('False Positive Rate (FPR)', fontsize='x-large')
+plt.ylabel('True Positive Rate (TPR)', fontsize='x-large')
+plt.title('Receiver Operating Characteristic (ROC) Curve', fontsize='x-large')
+plt.legend(loc='lower right', fontsize='x-small')
+#plotting
+plt.show()

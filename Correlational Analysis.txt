@@ -1,0 +1,13 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import spearmanr #Import all necessary libraries
+
+df = pd.read_csv('Normalized_Microbial_Abundance.csv') #Imports the data
+df.head() #Shows top 5 rows and gives an overview of the data
+corr=df.corr(numeric_only=True, method='spearman') #Calculates Spearman's correlational scores between microbes based on abundances
+corr.to_csv("Microbial_Correlation.csv") #Saves the correlational data
+corr.head() #Shows top 5 rows and gives an overview of the correlational data
+plt.figure(figsize=(150,130)) #Define plot dimensions
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap='inferno') #Visualize correlations using a heatmap. Other colour pallettes can also be used.

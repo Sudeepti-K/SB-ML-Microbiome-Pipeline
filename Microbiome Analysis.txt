@@ -1,0 +1,23 @@
+#Integrated pipeline for the in-silico analysis of 16s rRNA raw sequence microbiome data.
+#This code can be used for performing Taxonomic Classification (Multiple levels (1-6): Phylum-Species), Functional Profiling (Multiple levels:1-3, 4: KO annotation), and vizualization (Bar graph, Spider Chart).
+#Install Parallel-META 3 from http://bioinfo.single-cell.cn/parallel-meta.html, extract and install software.
+
+wget http://bioinfo.single-cell.cn/Released_Software/parallel-meta/3.7/parallel-meta-suite-3.7-src.tar.gz
+tar –xzvf parallel-meta-3.tar.gz
+cd parallel-meta
+source install.sh
+
+#PM-parallel-meta is the profiling tool for 16S rRNA sequences in FASTA/FASTQ format for taxonomical and predictive functional profiling.
+#-R for paired end sequences
+
+PM-parallel-meta –R Seq_1.fastq Seq2.fastq –o Results –l 150 #Output folder would contain text files with taxonomic classification and functional profiling results (classification.txt, functions.txt)
+
+#Used for multi-sample feature selection (with a specified taxonomical level ((1-6: Phylum - Species, 7: OTU))) based on the taxonomical profiling results.
+#In the single sample profile list (list.txt), each row represents one sample, with sample ID and path to its classification.txt file.
+
+PM-select-taxa –l list.txt –o taxa.txt –L 5 #Specified taxonomic level is Genus
+
+#For multi-sample feature selection (with a specified KEGG pathway level (Level 1, 2, 3 or 4 (KO number)) and relative abundance) based on the functional profiling results.
+#In the single sample profile list (list.txt), each row represents one sample, with sample ID and path to its functions.txt file.
+
+PM-select-func –l list.txt –o func.txt –L 2

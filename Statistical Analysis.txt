@@ -1,0 +1,29 @@
+#T.Test and Effect-Size with Cohen-D
+
+#Import normalized Abundance files (Could be genes, pathways, and microbes along with metadata)
+
+library(dplyr)
+library(rstatix)
+
+Column1_TT<-t.test(column ~ group, data = data) #T-test to check the statistic difference of one column based on "group" and its significance. Can be done for all columns individually.
+Pval<-t(as.data.frame(rbind(Column1_TT$p.value, Column2_TT$p.value, Column3_TT$p.value...ColumnN_TT))) #Extract P-values of each column calculated by T.test and combine all rows in one dataframe.
+
+Column1_ES<- data %>% cohens_d(Column1 ~ group) #Effect size for each column can be calculated individually
+Effect_Size<-as.data.frame(rbind(Column1_ES,Column2_ES,Column3_ES...ColumnN_ES)) #Combine all rows of Effect Sizes of all columns in one dataframe
+
+Stats<-as.data.frame(cbind(Effect_Size,Pval)) #Combine results of T.test and Effect sizen
+Stats$effsize<-abs(Stats$effsize) #Absolute values of Effect size
+Stats$P.value<-signif(Stats$P.value, digits=3) #Formats float numbers with scientific notations. Eg. "0.00000034e-14" to "3.4e-21" (Optional)
+write.csv(Stats,"T.Test-EffectSize.csv") #Save File
+
+#Plot Bar chart depicting Effect Sizes with P-values labelled at the end of the Bars
+ES_Graph<-ggplot(Stats, aes(x=group, y=effsize, fill=group)) +geom_bar(aes(x=group, y=effsize, fill=group), stat="identity", alpha=0.8)+theme(legend.position = "bottom")+  geom_text(aes(label = P.value), 
+    hjust = -0.2) +  coord_flip()+theme_minimal()+ggtitle("Effect Size of the Important groups along with their P-values")
+
+#Density plots for all features you want to observe across trimesters
+Column1<-ggplot(data, aes(fill = Trimester, x = Column1)) +geom_density(alpha = 0.5,size=0.8
+Column2<-ggplot(data, aes(fill = Trimester, x = Column2)) +geom_density(alpha = 0.5,size=0.8)
+Column3<-ggplot(data, aes(fill = Trimester, x = Column3)) +geom_density(alpha = 0.5,size=0.8)
+
+#Arrange density plot together
+ggarrange(Column1,Column2,Column3, ncol = 3, nrow =1, common.legend = TRUE,legend = "bottom")+ggtitle("Microbe abundance variation through Trimesters (Megasphaera, Shuttleworthia, Shuttleworthia)")
