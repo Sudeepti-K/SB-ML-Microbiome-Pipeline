@@ -22,12 +22,15 @@ print(df.isnull().sum())
 
 #Encoding the labels
 
+#Encoding the labels
 df=df.drop(['SampleID','BioProject ID'],axis=1)
 le=LabelEncoder()
-label_col=['Race','Geographical Location','Delivery Mode']
+label_col=['Race','Geographical Location']
 for i in label_col:
     df[i]=le.fit_transform(df[i])
 print(df)
+label_encoding = {'Delivery Mode': {'Preterm Birth': 1, 'Term Birth': 0}}
+df = df.replace(label_encoding)
 x=df.drop(['Delivery Mode'],axis=1)
 y=df['Delivery Mode']
 
