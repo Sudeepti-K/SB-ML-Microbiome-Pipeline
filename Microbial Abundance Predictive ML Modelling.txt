@@ -90,7 +90,7 @@ print()
 #Random Forest Classifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-rf_model_tomli = RandomForestClassifier()
+rf_model_tomli = RandomForestClassifier(random_state=42)
 rf_model_tomli.fit(x_tomli_train, y_tomli_train) #training the rf model with training data
 X_train_prediction = rf_model_tomli.predict(x_tomli_train) #accuracy score on training data
 training_data_accuracy = accuracy_score(y_tomli_train, X_train_prediction)
@@ -140,7 +140,7 @@ print("Shape of predicted dataset:",test_pred_proba_gnb_tomli.shape)
 #Decision Tree classifier
 from sklearn.tree import DecisionTreeClassifier
 print('done')
-DC_tomli = DecisionTreeClassifier()
+DC_tomli = DecisionTreeClassifier(random_state=42)
 DC_tomli.fit(x_tomli_train,y_tomli_train)
 print("Accuracy of Train Dataset:",accuracy_score(y_tomli_train,DC_tomli.predict(x_tomli_train)))
 x_test_predict = DC_tomli.predict(x_tomli_test)
